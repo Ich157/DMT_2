@@ -5,6 +5,8 @@ __pycache__/
 
 # C extensions
 *.so
+#ignore data
+2nd-assignment-dmt2022/
 
 # Distribution / packaging
 .Python
