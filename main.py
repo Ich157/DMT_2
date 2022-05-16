@@ -1,28 +1,42 @@
 import pandas as pd
+import numpy as np
 from sklearn.neighbors import KNeighborsRegressor
+import feature_engineering as fe
 
-def combine_comp(df):
-    df['comp_rate'] = df['comp1_rate'] + df['comp2_rate'] + df['comp3_rate'] + df['comp4_rate'] + df['comp5_rate'] + df['comp6_rate'] + df['comp7_rate'] + df['comp8_rate']
-    df['comp_inv'] = df['comp1_inv'] + df['comp2_inv'] + df['comp3_inv'] + df['comp4_inv'] + df['comp5_inv'] + df['comp6_inv'] + df['comp7_inv'] + df['comp8_inv']
-    df['comp_rate_percent_diff'] = df['comp1_rate_percent_diff'] + df['comp2_rate_percent_diff'] + df['comp3_rate_percent_diff'] + df['comp4_rate_percent_diff'] + df['comp5_rate_percent_diff'] + df['comp6_rate_percent_diff'] + df['comp7_rate_percent_diff'] + df['comp8_rate_percent_diff']
-    df['comp_rate'].fillna(0)
-    df['comp_inv'].fillna(0)
-    df['comp_rate_percent_diff'].fillna(0)
-    return df.drop(columns=['comp1_rate','comp2_rate','comp3_rate','comp4_rate','comp5_rate','comp6_rate','comp7_rate','comp8_rate',
-                            'comp1_inv','comp2_inv','comp3_inv','comp4_inv','comp5_inv','comp6_inv','comp7_inv','comp8_inv',
-                            'comp1_rate_percent_diff','comp2_rate_percent_diff','comp3_rate_percent_diff','comp4_rate_percent_diff',
-                            'comp5_rate_percent_diff','comp6_rate_percent_diff','comp7_rate_percent_diff','comp8_rate_percent_diff'])
-def preprocessing(df):
-    df = combine_comp(df)
+
+def prepro(df):
+    df = fe.divide_time(df)
+    df = fe.combine_comp(df)
+
+    df = fe.usd_diff(df)
+    df = fe.starrating_diff(df)
+    df = df.drop(columns=['visitor_hist_starrating', 'visitor_hist_adr_usd', 'price_usd', 'gross_bookings_usd', 'prop_location_score1'], axis=1)
+
+    # fill hotel descritptions with worst possible value
+    df['prop_starrating'].fillna(np.amin(df['prop_starrating']), inplace=True)
+    df['prop_review_score'].fillna(np.amin(df['prop_review_score']), inplace=True)
+    df['prop_location_score2'].fillna(np.amin(df['prop_location_score2']), inplace=True)
+    df['srch_query_affinity_score'].fillna(np.amin(df['srch_query_affinity_score']), inplace=True)
+    df['orig_destination_distance'].fillna(np.nanmedian(df['orig_destination_distance']), inplace=True)
+    print(df.isna().sum())
+
     return df
 
+
 def train_preprocessing(df):
-    df["target"] = int(df["click_bool"]) + 3 * int(df["booking_bool"])
-    return df.drop(columns=['position','click_bool','booking_bool','gross_booking_usd'])
+    df["click_bool"] = df["click_bool"].astype(int)
+    df["booking_bool"] = df["booking_bool"].astype(int)
+    df["target"] = df["click_bool"] + 3 * df["booking_bool"]
+    df = df.drop(columns=['position', 'click_bool', 'booking_bool'], axis=1)
+
+    return df
+
 
 if __name__ == '__main__':
-    train = pd.read_csv("data/training_set_VU_DM.csv")
-    test = pd.read_csv("data/test_set_VU_DM.csv")
-    train = preprocessing(train)
-    test = preprocessing(test)
-    train = train_preprocessing(train)
+    train_df = pd.read_csv("training_set_VU_DM.csv")
+    #test = pd.read_csv("data/test_set_VU_DM.csv")
+    train_df = prepro(train_df)
+    train = train_preprocessing(train_df)
+    #test = preprocessing(test)
+    train.to_csv('pre_processed_data.csv', index=False)
+

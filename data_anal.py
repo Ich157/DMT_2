@@ -26,23 +26,13 @@ def plot_nas(df):
 
 def heatmap(df):
     corr = df.corr()
-    
+    sns.heatmap(corr)
 
 
-def reduce_data(df):
-    # add columns year and month, easier for later feature engineering
-    df["date_time"] = pd.to_datetime(df["date_time"])
-    df["year"] = df["date_time"].dt.year
-    df["month"] = df["date_time"].dt.month
-
-    train_df = df.drop('date_time', 1)
-    # TODO: sum up the competetor variables to one variable only
-
-
-# TODO: apparently booking is down if hotel is missing data -> make plot
 
 
 def missing_interaction(df, booked):
+    pro_review_score, prob_location_score,
     if booked == 1:
         target = 'booking_bool'
     else:
@@ -70,10 +60,15 @@ def missing_interaction(df, booked):
     ind = np.array(range(len((ratio_booking))))
     width = 0.35
     fig, ax = plt.subplots()
-    rects1 = ax.bar(ind, ratio_booking, width, color='blue', label='no NA')
-    rects2 = ax.bar(ind + width, ratio_naBooking, width, color='green', label='NA')
-    ax.set_xticklabels(hotel_descriptions, rotation='vertical')
+    rects1 = ax.bar(ind, ratio_booking, width, color='blue',label='no NA')
+    rects2 = ax.bar(ind + width, ratio_naBooking, width, color='green',label='NA')
+    ax.set_xticklabels(hotel_descriptions,rotation='vertical')
+    plt.legend(prop={'size':6})
+    plt.tight_layout()
     plt.show()
 
 
+
+
 missing_interaction(train_df, 1)
+heatmap(train_df)
