@@ -8,7 +8,7 @@ import statsmodels.api as sm
 from statsmodels.formula.api import ols
 import missingno as msno
 
-train_df = pd.read_csv("training_set_VU_DM.csv")
+train_df = pd.read_csv("data/training_set_VU_DM.csv")
 # print(train_df.head)
 print(train_df.shape)  # 4958347, 54
 
@@ -20,19 +20,21 @@ print(train_df.shape)  # 4958347, 54
 
 def plot_nas(df):
     # plot missing data
-    msno.plot(df)
+    msno.bar(df)
     # plot shows that some varibales have missing data
 
 
 def heatmap(df):
     corr = df.corr()
     sns.heatmap(corr)
+    sns.despine()
+    plt.tight_layout()
+    plt.show()
 
 
 
 
 def missing_interaction(df, booked):
-    pro_review_score, prob_location_score,
     if booked == 1:
         target = 'booking_bool'
     else:
@@ -69,6 +71,6 @@ def missing_interaction(df, booked):
 
 
 
-
+plot_nas(train_df)
 missing_interaction(train_df, 1)
 heatmap(train_df)
