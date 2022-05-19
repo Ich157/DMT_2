@@ -27,16 +27,21 @@ def train_preprocessing(df):
     df["click_bool"] = df["click_bool"].astype(int)
     df["booking_bool"] = df["booking_bool"].astype(int)
     df["target"] = df["click_bool"] + 5 * df["booking_bool"]
-    df = df.drop(columns=['position', 'click_bool', 'booking_bool'], axis=1)
+    df = df.drop(columns=['click_bool', 'booking_bool'], axis=1)
 
     return df
 
 
 if __name__ == '__main__':
     train_df = pd.read_csv("data/training_set_VU_DM.csv")
-    #test = pd.read_csv("data/test_set_VU_DM.csv")
+
     train_df = prepro(train_df)
     train = train_preprocessing(train_df)
-    #test = preprocessing(test)
-    train_df.to_csv('data/pre_processed_data.csv', index=False)
+    train.to_csv('data/pre_processed_data.csv', index=False)
+
+    # for test
+    # test = pd.read_csv("data/test_set_VU_DM.csv")
+    # test = prepro(train_df)
+
+
 
