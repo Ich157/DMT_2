@@ -84,14 +84,14 @@ def fine_tuning(train_df):
     # seperate features and target
     x_val = val_data.drop('target', axis=1)  # Features
     x_val_data = x_val.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
+                                     'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
     y_val = val_data['target']
 
     # DATASET FOR TRAINING
     train_data = train_df.loc[train_df['srch_id'].isin(train_ids)]
     x_train = train_data.drop('target', axis=1)
     x_train = x_train.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
+                                    'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
     y_train = train_data['target']
 
     # FINE TUNING WITH RANDOM SEARCH
@@ -124,7 +124,8 @@ def fine_tuning(train_df):
                     for min_samples_leafs in min_samples_leaf:
                         print("fine tuning..")
                         random_forest = RandomForestRegressor(n_estimators=n_estimator, max_features=max_feature,
-                                                              max_depth=max_depths, min_samples_split=min_samples_splits,
+                                                              max_depth=max_depths,
+                                                              min_samples_split=min_samples_splits,
                                                               min_samples_leaf=min_samples_leafs)
                         random_forest.fit(x_train, y_train)
                         predictions = random_forest.predict(x_val_data)
@@ -143,8 +144,8 @@ def fine_tuning(train_df):
                         for x in val_output['srch_id']:
                             true_relevance = np.asarray([val_output.loc[val_output['srch_id'] == x, 'target']])
                             scores = np.asarray([val_output.loc[val_output['srch_id'] == x, 'relevance score']])
-                            #print(true_relevance)
-                            #print(scores)
+                            # print(true_relevance)
+                            # print(scores)
                             ndcg.append(ndcg_score(true_relevance, scores, k=5))
 
                         ndcg_mean = np.mean(ndcg)
@@ -163,17 +164,16 @@ def fine_tuning(train_df):
                             joblib.dump(random_forest, 'random_forest.pkl')
 
     print("finished fine tuning")
-    #joblib.dump(random_forest, 'random_forest.pkl')
-    #return random_forest, best_parameters
+    # joblib.dump(random_forest, 'random_forest.pkl')
+    # return random_forest, best_parameters
 
 
 def evaluation(train_df, test_df):
-
-    #load model + train on whole training data
+    # load model + train on whole training data
 
     # load test data
     x_test = test_df.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                   'prop_brand_bool', 'random_bool'], axis=1)
+                                   'prop_brand_bool', 'random_bool', 'is_cheapest'], axis=1)
 
     predictions = model.predict(x_test)
     d = {'relevance score': predictions}
@@ -204,4 +204,4 @@ train_df, test_df = read_data()
 # x_train, y_train, x_val, y_val = data_split(train_df)
 fine_tuning(train_df)
 # model = simple_forest(train_df)
-#evaluation(test_df)
+# evaluation(test_df)

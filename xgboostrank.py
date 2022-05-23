@@ -136,9 +136,9 @@ def tune():
 
     print(X_train.columns)
     X_train = X_train.drop(columns=['target', 'srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
+                                    'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
     X_val = X_val.drop(columns=['target', 'srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
+                                    'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
 
     params = {
         'n_estimators': [50, 100, 150],
@@ -192,16 +192,16 @@ def tune():
 # X_train, X_val = train_val_split(data)
 # print(X_val['srch_id'].nunique())
 # print(model.get_params)
-#params = {'gamma', 'max_depth', 'min_child_weight', 'n_estimators'}
+params = {'gamma', 'max_depth', 'min_child_weight', 'n_estimators'}
 
-#with open('best_params1.csv', 'r') as f:
-#    csv_reader = csv.DictReader(f)
-#    for row in csv_reader:
-#        print(row)
-#        params[str(row[0])] = row[1]
+with open('best_params1.csv', 'r') as f:
+    csv_reader = csv.DictReader(f)
+    for row in csv_reader:
+        print(row)
+        params[str(row[0])] = row[1]
 
-#print(params)
-#test_and_output(saved_model='best_model.json', params=params, output_name='XGtuned.csv')
+print(params)
+test_and_output(saved_model='best_model.json', params=params, output_name='XGtuned.csv')
 
 
 def evaluation():
@@ -229,4 +229,4 @@ def evaluation():
     output.to_csv('result_xgboost.csv', index=False)
 
 
-evaluation()
+#evaluation()

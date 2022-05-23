@@ -8,12 +8,12 @@ def prepro(df):
     df = fe.divide_time(df)
     df = fe.combine_comp(df)
     df = fe.avg_ranking(df)
-    df = fe.is_cheapest(df)
+    #df = fe.is_cheapest(df)
 
     df = fe.usd_diff(df)
     df = fe.starrating_diff(df)
     df = df.drop(columns=['visitor_hist_starrating', 'visitor_hist_adr_usd', 'price_usd', 'gross_bookings_usd',
-                          'prop_location_score1'], axis=1)
+                           'prop_location_score1'], axis=1)
 
     # fill hotel descritptions with worst possible value
     df['prop_starrating'].fillna(np.amin(df['prop_starrating']), inplace=True)
