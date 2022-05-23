@@ -47,6 +47,24 @@ def fill_col_with_worst(df, col_name, value):
     return df[col_name].fillna(value, inplace=True)
 
 
+def avg_ranking(df):
+    hotels = pd.unique(df['prop_id'].values.ravel())
+    means = df.groupby('prop_id')['position'].mean()
+    for hotel in hotels:
+        df.loc[df['prop_id'] == hotel, 'avg_position'] = means[hotel]
+
+    return df
+
+
+def is_cheapest(df):
+    min_price = df.groupby('srch_id')['price_usd'].min()
+
+    for price in min_price:
+        df.loc[df['price_usd'] == price, 'is_cheapest'] = 1
+        df['is_cheapest'].fillna(0)
+
+    return df
+
 
 def starrating_diff(df):
     df['visitor_hist_starrating'].fillna(0, inplace=True)

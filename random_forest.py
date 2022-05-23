@@ -167,8 +167,11 @@ def fine_tuning(train_df):
     #return random_forest, best_parameters
 
 
-def evaluation(test_df, model):
-    # load model
+def evaluation(train_df, test_df):
+
+    #load model + train on whole training data
+
+    # load test data
     x_test = test_df.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
                                    'prop_brand_bool', 'random_bool'], axis=1)
 
@@ -181,7 +184,7 @@ def evaluation(test_df, model):
     output = prediction_output.sort_values(['srch_id', 'relevance score'], ascending=[True, False]).groupby(
         'srch_id').head(25)
     output = output.drop('relevance score', axis=1)
-    output.to_csv('output_rf.csv', index=False)
+    output.to_csv('result_xgboost.csv', index=False)
 
 
 def simple_forest(train_df):
@@ -201,4 +204,4 @@ train_df, test_df = read_data()
 # x_train, y_train, x_val, y_val = data_split(train_df)
 fine_tuning(train_df)
 # model = simple_forest(train_df)
-#evaluation(test_df, model)
+#evaluation(test_df)
