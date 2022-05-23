@@ -19,6 +19,8 @@ def train_val_split(data, percentage = 0.8):
     #data['unique_id'].to_csv('fu.csv')
     X_test = data[data['unique_id'] >= splitpoint].drop(columns=['unique_id'])
     return X_train, X_test
+
+
 def makemodel():
     #5336 entries
 

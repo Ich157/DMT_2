@@ -6,6 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.metrics import ndcg_score
 import joblib
+import random
 
 
 def read_data():
@@ -70,31 +71,36 @@ def fit_model(x_train, y_train, x_val, val_df):
 
 
 def fine_tuning(train_df):
-    ### DATASET FOR TUNING
+    # DATASET FOR TUNING
     # make set for fine tuning smaller
     search_id = pd.unique(train_df['srch_id'].values.ravel())
-    search_ids = search_id[:40000]
-    tuning_data = train_df.loc[train_df['srch_id'].isin(search_ids)]
+    print(search_id)
+    val_ids = search_id[:40000]
+    print(val_ids)
+    train_ids = search_id[40000:100000]
+    print(train_ids)
+    val_data = train_df.loc[train_df['srch_id'].isin(val_ids)]
 
     # seperate features and target
-    x_tuning = tuning_data.drop('target', axis=1)  # Features
-    x_tuning_data = x_tuning.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
+    x_val = val_data.drop('target', axis=1)  # Features
+    x_val_data = x_val.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
                                     'prop_brand_bool', 'random_bool', 'position'], axis=1)
-    y_tuning = tuning_data['target']
+    y_val = val_data['target']
 
     # DATASET FOR TRAINING
-    x_train = train_df.drop('target', axis=1)
+    train_data = train_df.loc[train_df['srch_id'].isin(train_ids)]
+    x_train = train_data.drop('target', axis=1)
     x_train = x_train.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
                                     'prop_brand_bool', 'random_bool', 'position'], axis=1)
-    y_train = train_df['target']
+    y_train = train_data['target']
 
     # FINE TUNING WITH RANDOM SEARCH
     # number of trees in random forest
-    n_estimators = [100, 200, 300, 400, 1000]
+    n_estimators = [20, 30, 50, 70, 80, 100]
     # Number of features to consider at every split
     max_features = ['auto', 'sqrt']
     # Maximum number of levels in tree
-    max_depth = [70, 80, 90, 100, 110, None]
+    max_depth = [50, 70, 80, 100, None]
     # Minimum number of samples required to split a node
     min_samples_split = [5, 10, 12]
     # Minimum number of samples required at each leaf node
@@ -110,23 +116,55 @@ def fine_tuning(train_df):
                    'min_samples_leaf': min_samples_leaf,
                    'bootstrap': bootstrap}
 
-    rf = RandomForestRegressor()
-    rf_random = RandomizedSearchCV(estimator=rf, param_distributions=random_grid, n_iter=20, cv=3, verbose=2,
-                                   random_state=42, n_jobs=-1)
+    best_ndcg = 0
+    for n_estimator in n_estimators:
+        for max_feature in max_features:
+            for max_depths in max_depth:
+                for min_samples_splits in min_samples_split:
+                    for min_samples_leafs in min_samples_leaf:
+                        print("fine tuning..")
+                        random_forest = RandomForestRegressor(n_estimators=n_estimator, max_features=max_feature,
+                                                              max_depth=max_depths, min_samples_split=min_samples_splits,
+                                                              min_samples_leaf=min_samples_leafs)
+                        random_forest.fit(x_train, y_train)
+                        predictions = random_forest.predict(x_val_data)
 
-    # fit random search model
-    rf_random.fit(x_tuning_data, y_tuning)
+                        d = {'relevance score': predictions}
+                        prediction_output = pd.DataFrame(d)
+                        prediction_output['srch_id'] = val_data['srch_id']
+                        prediction_output['prop_id'] = val_data['prop_id']
+                        prediction_output['real_ranking'] = val_data['position']
+                        prediction_output['target'] = val_data['target']
 
-    # print parameters
-    print(rf_random.best_params_)
+                        val_output = prediction_output.sort_values(['srch_id', 'relevance score'],
+                                                                   ascending=[True, False]).groupby('srch_id').head(25)
 
-    tuned_model = rf.best_estimator_
-    #joblib.dump(model, 'random_forest.pkl')
+                        ndcg = []
+                        for x in val_output['srch_id']:
+                            true_relevance = np.asarray([val_output.loc[val_output['srch_id'] == x, 'target']])
+                            scores = np.asarray([val_output.loc[val_output['srch_id'] == x, 'relevance score']])
+                            #print(true_relevance)
+                            #print(scores)
+                            ndcg.append(ndcg_score(true_relevance, scores, k=5))
 
-    # train model with best fine tuned model
-    trained_model = tuned_model.fit(x_train, y_train)
+                        ndcg_mean = np.mean(ndcg)
+                        if ndcg_mean > best_ndcg:
+                            print(ndcg_mean)
+                            best_ndcg = ndcg_mean
+                            best_parameters = [n_estimator, max_feature, max_depths, min_samples_splits,
+                                               min_samples_leafs]
+                            print(best_parameters)
+                            textfile = open("rf_parameters.txt", "w")
+                            for element in best_parameters:
+                                textfile.write(str(element))
+                                textfile.write("\n")
+                            textfile.close()
+                            best_model = random_forest
+                            joblib.dump(random_forest, 'random_forest.pkl')
 
-    return trained_model
+    print("finished fine tuning")
+    #joblib.dump(random_forest, 'random_forest.pkl')
+    #return random_forest, best_parameters
 
 
 def evaluation(test_df, model):
@@ -143,7 +181,7 @@ def evaluation(test_df, model):
     output = prediction_output.sort_values(['srch_id', 'relevance score'], ascending=[True, False]).groupby(
         'srch_id').head(25)
     output = output.drop('relevance score', axis=1)
-    output.to_csv('output.csv', index=False)
+    output.to_csv('output_rf.csv', index=False)
 
 
 def simple_forest(train_df):
@@ -161,6 +199,6 @@ def simple_forest(train_df):
 
 train_df, test_df = read_data()
 # x_train, y_train, x_val, y_val = data_split(train_df)
-# model = fine_tuning(train_df)
-model = simple_forest(train_df)
-evaluation(test_df, model)
+fine_tuning(train_df)
+# model = simple_forest(train_df)
+#evaluation(test_df, model)
