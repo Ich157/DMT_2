@@ -47,21 +47,23 @@ def fill_col_with_worst(df, col_name, value):
     return df[col_name].fillna(value, inplace=True)
 
 
-def avg_ranking(df):
-    hotels = pd.unique(df['prop_id'].values.ravel())
-    means = df.groupby('prop_id')['position'].mean()
+def avg_ranking(df_train, df_test):
+    hotels = pd.unique(df_train['prop_id'].values.ravel())
+    means = df_train.groupby('prop_id')['position'].mean()
     for hotel in hotels:
-        df.loc[df['prop_id'] == hotel, 'avg_position'] = means[hotel]
+        df_test.loc[df_test['prop_id'] == hotel, 'avg_position'] = means[hotel]  # if test data change this to df_test
 
-    return df
+    return df_test  # if test data change this to df_test
 
 
 def is_cheapest(df):
     min_price = df.groupby('srch_id')['price_usd'].min()
+    min_price = min_price.to_frame()
+    print(min_price)
 
-    for price in min_price:
-        df.loc[df['price_usd'] == price, 'is_cheapest'] = 1
-        df['is_cheapest'].fillna(0)
+    for index, row in min_price.iterrows():
+        df.loc[(df['price_usd'] == row['price_usd']) & (df['srch_id'] == index), 'is_cheapest'] = 1
+        df['is_cheapest'] = df['is_cheapest'].fillna(0)
 
     return df
 

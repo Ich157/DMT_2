@@ -73,38 +73,40 @@ def fit_model(x_train, y_train, x_val, val_df):
 def fine_tuning(train_df):
     # DATASET FOR TUNING
     # make set for fine tuning smaller
+    train_df['is_cheapest'] = train_df['is_cheapest'].fillna(0)
+    print(train_df.isna().sum())
     search_id = pd.unique(train_df['srch_id'].values.ravel())
     print(search_id)
-    val_ids = search_id[:40000]
+    val_ids = search_id[:20000]
     print(val_ids)
-    train_ids = search_id[40000:100000]
+    train_ids = search_id[40000:70000]
     print(train_ids)
     val_data = train_df.loc[train_df['srch_id'].isin(val_ids)]
 
     # seperate features and target
     x_val = val_data.drop('target', axis=1)  # Features
     x_val_data = x_val.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                     'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
+                                     'prop_brand_bool', 'random_bool', 'position'], axis=1)
     y_val = val_data['target']
 
     # DATASET FOR TRAINING
     train_data = train_df.loc[train_df['srch_id'].isin(train_ids)]
     x_train = train_data.drop('target', axis=1)
     x_train = x_train.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                    'prop_brand_bool', 'random_bool', 'position', 'is_cheapest'], axis=1)
+                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
     y_train = train_data['target']
 
     # FINE TUNING WITH RANDOM SEARCH
     # number of trees in random forest
-    n_estimators = [20, 30, 50, 70, 80, 100]
+    n_estimators = [80]
     # Number of features to consider at every split
-    max_features = ['auto', 'sqrt']
+    max_features = ['auto']
     # Maximum number of levels in tree
-    max_depth = [50, 70, 80, 100, None]
+    max_depth = [70, 100, None]
     # Minimum number of samples required to split a node
-    min_samples_split = [5, 10, 12]
+    min_samples_split = [10, 12]
     # Minimum number of samples required at each leaf node
-    min_samples_leaf = [2, 4, 8]
+    min_samples_leaf = [4, 8]
     # Method of selecting samples for training each tree
     bootstrap = [True]
 
@@ -170,12 +172,25 @@ def fine_tuning(train_df):
 
 def evaluation(train_df, test_df):
     # load model + train on whole training data
+    train_df['is_cheapest'] = train_df['is_cheapest'].fillna(0)
+    x_train = train_df.drop('target', axis=1)
+    x_train = x_train.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
+                                    'prop_brand_bool', 'random_bool', 'position'], axis=1)
+    y_train = train_df['target']
+
+    random_forest = RandomForestRegressor(n_estimators=80, max_features='auto',
+                                          max_depth=100,
+                                          min_samples_split=12,
+                                          min_samples_leaf=8)
+
+    random_forest.fit(x_train, y_train)
 
     # load test data
+    test_df['avg_position'].fillna(np.nanmedian(test_df['avg_position']), inplace=True)
     x_test = test_df.drop(columns=['srch_id', 'site_id', 'visitor_location_country_id', 'prop_country_id', 'prop_id',
-                                   'prop_brand_bool', 'random_bool', 'is_cheapest'], axis=1)
+                                   'prop_brand_bool', 'random_bool'], axis=1)
 
-    predictions = model.predict(x_test)
+    predictions = random_forest.predict(x_test)
     d = {'relevance score': predictions}
     prediction_output = pd.DataFrame(d)
     prediction_output['srch_id'] = test_df['srch_id']
@@ -184,7 +199,7 @@ def evaluation(train_df, test_df):
     output = prediction_output.sort_values(['srch_id', 'relevance score'], ascending=[True, False]).groupby(
         'srch_id').head(25)
     output = output.drop('relevance score', axis=1)
-    output.to_csv('result_xgboost.csv', index=False)
+    output.to_csv('result_RF.csv', index=False)
 
 
 def simple_forest(train_df):
@@ -202,6 +217,6 @@ def simple_forest(train_df):
 
 train_df, test_df = read_data()
 # x_train, y_train, x_val, y_val = data_split(train_df)
-fine_tuning(train_df)
+#fine_tuning(train_df)
 # model = simple_forest(train_df)
-# evaluation(test_df)
+evaluation(train_df, test_df)
